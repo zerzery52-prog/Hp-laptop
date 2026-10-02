@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Kontrol HP</title><style>
+:root{--t:#e9f2e6;--m:#9db3a2;--a:#b9dc92;--l:rgba(255,255,255,.14)}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+body{min-height:100dvh;color:var(--t);font:15px/1.5 system-ui,'Segoe UI',sans-serif;background:linear-gradient(135deg,#0b1913,#1b3a2c,#0d2018);background-size:300% 300%;animation:bg 18s ease infinite}
+@keyframes bg{50%{background-position:100% 100%}}
+h1,h2{font-family:Georgia,serif;font-weight:500}h1{font-size:1.6rem}h2{font-size:1.15rem;margin-bottom:10px}
+.wrap{max-width:900px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 22px) 18px 40px}
+.gl{background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.04));border:1px solid var(--l);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:22px;padding:22px;animation:up .5s both}
+@keyframes up{from{opacity:0;transform:translateY(14px)}}
+.m{color:var(--m);font-size:.88rem}
+button{padding:11px 18px;border:0;border-radius:30px;background:linear-gradient(90deg,#d4e9b5,#8fb878);color:#12261d;font:600 .92rem system-ui;cursor:pointer;transition:transform .15s,filter .2s}
+button:hover{filter:brightness(1.08)}button:active{transform:scale(.96)}button:disabled{opacity:.4}
+button.gh{background:none;border:1px solid var(--l);color:var(--m)}
+input{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--l);border-radius:14px;color:var(--t);font:inherit;padding:11px 14px;margin:10px 0;outline:0}
+input:focus{border-color:var(--a)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#777;margin-right:8px;transition:.3s}.dot.on{background:#7be0a0;box-shadow:0 0 10px #7be0a0}
+.bt{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+[hidden]{display:none!important}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body><div class="wrap"><h1>Kontrol HP dari Laptop</h1><p class="m" style="margin-top:4px">Pindai kode QR dengan HP untuk menyambungkan. HP harus menyetujui dulu, dan bisa memutus kapan saja.</p>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:20px 0">
+<div class="gl"><h2>1. Sambungkan HP</h2>
+<div id="qr" style="display:grid;place-items:center;padding:14px;background:#fff;border-radius:16px;min-height:120px;color:#333"></div>
+<p class="m" style="margin-top:12px"><span class="dot" id="dt"></span><span id="st">Menunggu pemindaian...</span></p>
+<p class="m" style="margin-top:12px">Alamat halaman HP (hp.html, harus online)</p><input id="url" placeholder="https://.../hp.html">
+<div class="bt"><button class="gh" id="nw">Buat kode baru</button><button class="gh" id="dc" hidden>Putuskan</button></div></div>
+<div class="gl" id="ctl" style="transition:.3s"><h2>2. Kontrol</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<button data-c="vib">📳 Getarkan</button><button data-c="alarm">🔔 Cari HP</button><button data-c="stop" class="gh">🔕 Hentikan bunyi</button>
+<button data-c="fill" data-d="#ffffff">💡 Layar putih</button><button data-c="fill" data-d="#ff3b3b">🟥 Layar merah</button><button data-c="fill" data-d="" class="gh">Tutup warna</button></div>
+<input id="msg" placeholder="Pesan untuk layar HP"><button id="sm">Kirim pesan</button>
+<input id="lnk" placeholder="https://tautan-untuk-dibuka"><button id="sl">Kirim tautan</button>
+<p class="m" id="info" style="margin-top:14px;white-space:pre-line"></p></div></div>
+<div class="gl"><h2>Log</h2><div id="log" class="m" style="max-height:170px;overflow:auto">Belum ada aktivitas.</div></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script><script type="module">import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getDatabase,ref,set,push,remove,onValue,onChildAdded,onDisconnect,runTransaction,query,limitToLast} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+const $=s=>document.querySelector(s),db=getDatabase(initializeApp({apiKey:"AIzaSyDVTWJokk_3F5-eHBGtAKqLmgrevEi_0is",authDomain:"atan-absen.firebaseapp.com",databaseURL:"https://atan-absen-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"atan-absen",storageBucket:"atan-absen.firebasestorage.app",messagingSenderId:"327879837718",appId:"1:327879837718:web:b47c5a96b7ff9bd3ec4d37"}));
+
+const tok=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
+let t,conn=false,made=0,un=[],st=null;
+$('#url').value=location.protocol==='file:'?'':location.href.replace(/[^/]*$/,'')+'hp.html';
+const log=m=>{const d=document.createElement('div');if($('#log').textContent==='Belum ada aktivitas.')$('#log').textContent='';d.textContent=new Date().toLocaleTimeString('id-ID')+'  '+m;$('#log').prepend(d)};
+function ui(){$('#ctl').style.opacity=conn?1:.4;$('#ctl').style.pointerEvents=conn?'auto':'none';$('#qr').parentElement.hidden=false;$('#qr').style.display=conn?'none':'grid';$('#dt').classList.toggle('on',conn);$('#st').textContent=conn?'Tersambung':'Menunggu pemindaian...';$('#dc').hidden=!conn}
+function qr(){const q=$('#qr');q.innerHTML='';const u=$('#url').value.trim();if(!/^https?:\/\//i.test(u)){q.textContent='Isi alamat hp.html di bawah (harus online, mis. GitHub Pages).';return}new QRCode(q,{text:u+'?s='+t,width:220,height:220,colorDark:'#0e1a14',colorLight:'#ffffff'})}
+function info(){if(!st)return;const age=Math.round((Date.now()-st.ts)/1000);$('#info').textContent=(st.bat!=null?'Baterai: '+st.bat+'%'+(st.chg?' (mengisi)':'')+'\n':'')+'Jaringan: '+(st.net||'-')+'\nLayar: '+st.w+'×'+st.h+'\n'+(age>40?'⚠ Tidak merespons (halaman HP ditutup atau di latar belakang)':'Aktif '+age+' detik lalu')}
+async function baru(){un.forEach(f=>f());un=[];st=null;if(t)remove(ref(db,'remote/'+t));t=tok();conn=false;made=Date.now();$('#info').textContent='';ui();
+ const r=ref(db,'remote/'+t);await set(r,{c:made});onDisconnect(r).remove();
+ un.push(onValue(r,s=>{const v=s.val();if(!v)return;if(v.end){log('HP memutus sambungan');baru();return}if(v.claimed&&!conn){conn=true;ui();log('HP tersambung: '+v.dev)}if(v.st){st=v.st;info()}}));
+ un.push(onChildAdded(query(ref(db,'remote/'+t+'/ev'),limitToLast(20)),s=>log('HP: '+s.val().m)));qr()}
+const send=(c,d)=>{if(!conn)return;set(ref(db,'remote/'+t+'/cmd'),{c,d:d==null?'':d,ts:Date.now()+Math.random()});log('Kirim: '+c)};
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>send(b.dataset.c,b.dataset.d));
+$('#sm').onclick=()=>{const v=$('#msg').value.trim();if(v){send('msg',v.slice(0,500));$('#msg').value=''}};
+$('#sl').onclick=()=>{const v=$('#lnk').value.trim();if(/^https?:\/\//i.test(v)){send('url',v.slice(0,500));$('#lnk').value=''}else alert('Tautan harus diawali http:// atau https://')};
+$('#nw').onclick=baru;$('#url').onchange=qr;
+$('#dc').onclick=async()=>{await set(ref(db,'remote/'+t+'/end'),true);baru()};
+setInterval(()=>{if(!conn&&Date.now()-made>3e5)baru();info()},5000);
+baru();
+</script></body></html>

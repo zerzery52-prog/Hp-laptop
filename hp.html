@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Sambung ke laptop</title><style>
+:root{--t:#e9f2e6;--m:#9db3a2;--a:#b9dc92;--l:rgba(255,255,255,.14)}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+body{min-height:100dvh;color:var(--t);font:15px/1.5 system-ui,'Segoe UI',sans-serif;background:linear-gradient(135deg,#0b1913,#1b3a2c,#0d2018);background-size:300% 300%;animation:bg 18s ease infinite}
+@keyframes bg{50%{background-position:100% 100%}}
+h1,h2{font-family:Georgia,serif;font-weight:500}h1{font-size:1.6rem}h2{font-size:1.15rem;margin-bottom:10px}
+.wrap{max-width:900px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 22px) 18px 40px}
+.gl{background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.04));border:1px solid var(--l);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:22px;padding:22px;animation:up .5s both}
+@keyframes up{from{opacity:0;transform:translateY(14px)}}
+.m{color:var(--m);font-size:.88rem}
+button{padding:11px 18px;border:0;border-radius:30px;background:linear-gradient(90deg,#d4e9b5,#8fb878);color:#12261d;font:600 .92rem system-ui;cursor:pointer;transition:transform .15s,filter .2s}
+button:hover{filter:brightness(1.08)}button:active{transform:scale(.96)}button:disabled{opacity:.4}
+button.gh{background:none;border:1px solid var(--l);color:var(--m)}
+input{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--l);border-radius:14px;color:var(--t);font:inherit;padding:11px 14px;margin:10px 0;outline:0}
+input:focus{border-color:var(--a)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#777;margin-right:8px;transition:.3s}.dot.on{background:#7be0a0;box-shadow:0 0 10px #7be0a0}
+.bt{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+[hidden]{display:none!important}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body><div class="wrap" style="max-width:460px">
+<div class="gl" id="v0"><h1>Sambungkan ke laptop</h1><p class="m" style="margin:6px 0 14px">Pindai kode QR yang tampil di laptop.</p><button id="sc">Pindai QR</button>
+<video id="vd" playsinline muted hidden style="width:100%;margin-top:14px;border-radius:16px"></video><p class="m" id="hn" style="margin-top:12px"></p></div>
+<div class="gl" id="v1" hidden><h1>Izinkan sambungan?</h1><p class="m" style="margin:8px 0 16px">Laptop ingin mengirim perintah ke HP ini: getar, bunyi, pesan, tautan, dan warna layar. Kamera, mikrofon, dan lokasi tidak diakses. Kamu bisa memutus kapan saja.</p><div class="bt"><button id="ok">Izinkan</button><button class="gh" id="no">Tolak</button></div></div>
+<div class="gl" id="v2" hidden><h1><span class="dot on"></span>Tersambung</h1><p class="m" style="margin-top:8px">Biarkan halaman ini tetap terbuka agar perintah dari laptop sampai.</p></div></div>
+<div id="bn" hidden style="position:fixed;top:calc(env(safe-area-inset-top) + 10px);left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14px;border-radius:30px;background:rgba(8,18,13,.92);border:1px solid var(--l);font-size:.82rem;white-space:nowrap"><span class="dot on" style="margin:0"></span>Tersambung ke laptop<button id="out" style="padding:6px 12px;font-size:.78rem">Putuskan</button></div>
+<div id="fill" hidden style="position:fixed;inset:0;z-index:5"></div>
+<div id="ov" hidden style="position:fixed;inset:0;z-index:9;background:rgba(0,0,0,.65);display:grid;place-items:center;padding:20px"><div class="gl" style="max-width:420px;width:100%"><p id="ot" style="font-size:1.1rem;word-break:break-word"></p><div class="bt" id="ob"></div></div></div><script type="module">import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getDatabase,ref,set,push,remove,onValue,onChildAdded,onDisconnect,runTransaction,query,limitToLast} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+const $=s=>document.querySelector(s),db=getDatabase(initializeApp({apiKey:"AIzaSyDVTWJokk_3F5-eHBGtAKqLmgrevEi_0is",authDomain:"atan-absen.firebaseapp.com",databaseURL:"https://atan-absen-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"atan-absen",storageBucket:"atan-absen.firebasestorage.app",messagingSenderId:"327879837718",appId:"1:327879837718:web:b47c5a96b7ff9bd3ec4d37"}));
+
+const q=new URLSearchParams(location.search);let dev;try{dev=localStorage.getItem('hp-id')||crypto.randomUUID();localStorage.setItem('hp-id',dev)}catch(e){dev=crypto.randomUUID()}
+const ua=navigator.userAgent,name=(/Android/.test(ua)?'Android':/iPhone|iPad/.test(ua)?'iOS':'Perangkat')+' '+screen.width+'×'+screen.height;
+let tk,AC,osc,al,aT,wl,unsub,sti,last,first,live=false;
+const view=n=>[0,1,2].forEach(i=>$('#v'+i).hidden=i!==n);
+const ev=m=>{if(tk)push(ref(db,'remote/'+tk+'/ev'),{m,ts:Date.now()})};
+function ask(k){tk=k;view(1)}
+if(/^[0-9a-f]{32}$/.test(q.get('s')||''))ask(q.get('s'));
+// Pindai QR di dalam halaman
+$('#sc').onclick=async()=>{
+ if(!('BarcodeDetector' in window)){$('#hn').textContent='Pemindai bawaan tidak tersedia di browser ini. Pindai QR dengan aplikasi Kamera HP, lalu buka tautannya.';return}
+ let s;try{s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})}catch(e){$('#hn').textContent='Izin kamera ditolak. Kamera hanya dipakai untuk memindai QR.';return}
+ const v=$('#vd'),d=new BarcodeDetector({formats:['qr_code']});v.srcObject=s;v.hidden=false;await v.play();
+ const stop=()=>{s.getTracks().forEach(x=>x.stop());v.hidden=true};
+ const loop=async()=>{if(!s.active)return;try{const r=await d.detect(v);if(r[0]){const k=new URL(r[0].rawValue).searchParams.get('s');if(/^[0-9a-f]{32}$/.test(k||'')){stop();ask(k);return}}}catch(e){}setTimeout(loop,300)};loop()};
+$('#no').onclick=()=>{tk=null;view(0)};
+$('#ok').onclick=async()=>{
+ AC=AC||new(window.AudioContext||window.webkitAudioContext)();AC.resume();
+ const r=ref(db,'remote/'+tk);
+ const res=await runTransaction(r,c=>{if(!c)return{};if(!c.c)return;if(c.claimed&&c.claimed!==dev)return;if(!c.claimed&&Date.now()-c.c>6e5)return;c.claimed=dev;c.dev=name;return c}),v=res.snapshot.val();
+ if(!v||v.claimed!==dev){alert('Kode tidak valid, kedaluwarsa, atau sudah dipakai. Buat kode baru di laptop.');tk=null;view(0);return}
+ live=true;first=true;last=null;view(2);$('#bn').hidden=false;wake();stat();sti=setInterval(stat,1e4);
+ unsub=onValue(r,s=>{const x=s.val();if(!x||x.end){bye('Sambungan diputus.');return}if(first){first=false;last=x.cmd&&x.cmd.ts;return}if(x.cmd&&x.cmd.ts!==last){last=x.cmd.ts;run(x.cmd)}})};
+async function stat(){let b=null;try{b=await navigator.getBattery()}catch(e){}set(ref(db,'remote/'+tk+'/st'),{bat:b?Math.round(b.level*100):null,chg:b?b.charging:null,net:(navigator.connection||{}).effectiveType||null,w:screen.width,h:screen.height,ts:Date.now()})}
+async function wake(){try{wl=await navigator.wakeLock.request('screen')}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(live&&document.visibilityState==='visible')wake()});
+function show(text,btns){$('#ot').textContent=text;const o=$('#ob');o.innerHTML='';btns.forEach(([l,f],i)=>{const b=document.createElement('button');b.textContent=l;if(i)b.className='gh';b.onclick=()=>{if(f)f();$('#ov').hidden=true;ev('Ditekan: '+l)};o.appendChild(b)});$('#ov').hidden=false}
+function alarm(on){const was=!!osc;clearInterval(al);clearTimeout(aT);if(osc){try{osc.stop()}catch(e){}osc=null}
+ if(on){osc=AC.createOscillator();const g=AC.createGain();osc.type='square';g.gain.value=.35;osc.connect(g);g.connect(AC.destination);osc.start();let h=0;al=setInterval(()=>osc.frequency.setValueAtTime(h++%2?900:600,AC.currentTime),400);aT=setTimeout(()=>alarm(false),6e4);show('HP ini sedang dibunyikan dari laptop.',[['Matikan bunyi',()=>alarm(false)]]);ev('Alarm menyala')}
+ else if(was){$('#ov').hidden=true;ev('Alarm dimatikan')}}
+function run({c,d}){d=String(d||'').slice(0,500);
+ if(c==='vib')ev(navigator.vibrate?(navigator.vibrate([400,150,400,150,400])?'Getar dijalankan':'Getar ditolak browser'):'Getar tidak didukung di perangkat ini');
+ else if(c==='alarm')alarm(true);else if(c==='stop')alarm(false);
+ else if(c==='fill'){$('#fill').hidden=!d;$('#fill').style.background=d;ev(d?'Warna layar diubah':'Warna layar ditutup')}
+ else if(c==='msg')show(d,[['Tutup'],['Salin',()=>navigator.clipboard&&navigator.clipboard.writeText(d)]]);
+ else if(c==='url'&&/^https?:\/\//i.test(d))show(d,[['Buka',()=>window.open(d,'_blank','noopener')],['Tutup']])}
+function bye(msg){if(!live)return;live=false;alarm(false);clearInterval(sti);if(unsub)unsub();if(wl)wl.release().catch(()=>{});$('#fill').hidden=true;$('#ov').hidden=true;$('#bn').hidden=true;tk=null;view(0);$('#hn').textContent=msg||''}
+$('#out').onclick=async()=>{await set(ref(db,'remote/'+tk+'/end'),true);bye('Kamu memutus sambungan.')};
+</script></body></html>
